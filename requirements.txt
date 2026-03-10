@@ -11,6 +11,11 @@ numpy>=1.24.0
 # LLM provider
 groq>=0.4.0  # Groq API for fast inference
 
+# Web API
+fastapi>=0.111.0
+uvicorn>=0.30.0
+python-dotenv>=1.0.0
+
 # Optional: For Jupyter notebooks
 # jupyter>=1.0.0
 # matplotlib>=3.7.0

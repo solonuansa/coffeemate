@@ -4,11 +4,8 @@ load_dotenv()
 
 import sys
 import logging
-from src.retriever import Retriever
-from src.generator import Generator
+from src.rag_service import RAGService
 
-import os
-import logging
 import warnings
 
 
@@ -41,8 +38,7 @@ class RAGApp:
         print("Sistem RAG Coffee Shop")
         print()
         
-        self.retriever = Retriever()
-        self.generator = Generator()
+        self.rag_service = RAGService()
         
         print()
     
@@ -58,35 +54,7 @@ class RAGApp:
         """
         print(f"Query: {question}")
         print("-" * 60)
-        
-        # Retrieve relevant documents
-        documents = self.retriever.retrieve(question)
-        
-        if not documents:
-            return {
-                "answer": "Maaf, tidak ada informasi yang relevan ditemukan.",
-                "sources": []
-            }
-        
-        # Format context
-        context = self.retriever.format_context(documents)
-        
-        # Generate response
-        answer = self.generator.generate(question, context)
-        
-        # Extract sources
-        sources = []
-        for doc in documents:
-            metadata = doc["metadata"]
-            sources.append({
-                "nama": metadata.get("source", "Unknown"),
-                "lokasi": metadata.get("lokasi", "Unknown")
-            })
-        
-        return {
-            "answer": answer,
-            "sources": sources
-        }
+        return self.rag_service.ask(question)
     
     def print_response(self, response: dict):
         """
