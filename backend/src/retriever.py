@@ -1,5 +1,11 @@
 import logging
-from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, TOP_K_RESULTS, SCORE_THRESHOLD
+from backend.config.settings import (
+    VECTOR_STORE_DIR,
+    EMBEDDING_MODEL,
+    TOP_K_RESULTS,
+    SCORE_THRESHOLD,
+    PROCESSED_DATA_DIR,
+)
 from langchain_chroma import Chroma
 
 from backend.src.embed import EmbeddingModel
@@ -13,14 +19,9 @@ class Retriever:
     def __init__(self):
         """Inisialisasi retriever"""
         print("Memuat vector store...")
-        
-        # Validate vector store exists
-        if not VECTOR_STORE_DIR.exists():
-            raise FileNotFoundError(
-                f"Vector store tidak ditemukan di {VECTOR_STORE_DIR}. "
-                "Jalankan 'python scripts/reingest.py' terlebih dahulu untuk membuat vector store."
-            )
-        
+
+        self._ensure_vector_store()
+
         # Load embedding model
         self.embedding_model = EmbeddingModel(EMBEDDING_MODEL)
         self.embedding_function = self._create_embedding_function()
@@ -33,10 +34,45 @@ class Retriever:
             )
             doc_count = self.vectorstore._collection.count()
             if doc_count == 0:
-                raise ValueError("Vector store kosong. Jalankan 'python scripts/reingest.py' untuk mengisi data.")
+                self._rebuild_vector_store()
+                self.vectorstore = Chroma(
+                    persist_directory=str(VECTOR_STORE_DIR),
+                    embedding_function=self.embedding_function
+                )
+                doc_count = self.vectorstore._collection.count()
+                if doc_count == 0:
+                    raise ValueError("Vector store kosong setelah rebuild.")
             print(f"Vector store berhasil dimuat ({doc_count} dokumen)")
         except Exception as e:
             raise RuntimeError(f"Gagal memuat vector store: {str(e)}")
+
+    def _ensure_vector_store(self) -> None:
+        """Pastikan vector store tersedia sebelum dipakai."""
+        if VECTOR_STORE_DIR.exists():
+            return
+        self._rebuild_vector_store()
+
+    def _rebuild_vector_store(self) -> None:
+        """
+        Build ulang vector store dari CSV processed.
+
+        Ini penting untuk environment ephemeral seperti Railway.
+        """
+        csv_path = PROCESSED_DATA_DIR / "extracted_data_sahabatai.csv"
+        if not csv_path.exists():
+            raise FileNotFoundError(
+                f"Vector store tidak ditemukan di {VECTOR_STORE_DIR}, "
+                f"dan file sumber juga tidak ditemukan di {csv_path}."
+            )
+
+        logger.info(
+            "Vector store belum tersedia/invalid, membangun ulang dari %s",
+            csv_path,
+        )
+        from backend.src.ingest import DataIngestor
+
+        ingestor = DataIngestor()
+        ingestor.load_and_ingest_csv(str(csv_path))
     
     def _create_embedding_function(self):
         """Buat fungsi embedding yang kompatibel dengan Chroma"""

@@ -138,3 +138,5 @@ Catatan: limiter masih in-memory (`backend/web_api/security.py`), cocok untuk si
 - Frontend: Vercel.
 - Backend: Render / Railway / Fly.io.
 - Gunakan persistent volume jika tetap menyimpan ChromaDB secara lokal.
+- Untuk Railway tanpa persistent volume, backend akan auto-build vector store saat startup dari `data/processed/extracted_data_sahabatai.csv`.
+- Pastikan `JINA_API_KEY` tersedia di environment Railway agar proses auto-build berhasil.
