@@ -91,10 +91,10 @@ uvicorn backend.web_api.main:app --reload
 
 ```bash
 cd frontend
-npm run dev
+npm run dev:3010
 ```
 
-3. Buka `http://localhost:3000`.
+3. Buka `http://localhost:3010`.
 
 ## Menjalankan Mode CLI
 

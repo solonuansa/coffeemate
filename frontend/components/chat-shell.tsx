@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, User, Bot, Loader2, MapPin } from "lucide-react";
+import { Send, User, Bot, Loader2, MapPin, RotateCcw } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -123,22 +123,40 @@ export default function ChatShell() {
     }
   };
 
+  const handleResetChat = () => {
+    if (isLoading) return;
+    setMessages([]);
+    setQuestion("");
+    setError(null);
+  };
+
   return (
     <div className="mx-auto flex h-screen w-full max-w-4xl flex-col">
       {/* Premium Header */}
       <header className="sticky top-0 z-10 flex flex-col items-center justify-center border-b border-stone-200/50 bg-white/60 px-6 py-5 shadow-sm backdrop-blur-md transition-all">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-accent)] text-white shadow-md">
-            <Bot size={22} className="stroke-[1.5]" />
+        <div className="flex w-full max-w-3xl items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--primary-accent)] text-white shadow-md">
+              <Bot size={22} className="stroke-[1.5]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold tracking-tight text-stone-900">
+                CoffeeMate <span className="text-stone-400 font-normal">| Jogja</span>
+              </h1>
+              <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
+                Coffee Shop Assistant
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-stone-900">
-              CoffeeMate <span className="text-stone-400 font-normal">| Jogja</span>
-            </h1>
-            <p className="text-xs font-medium uppercase tracking-wider text-stone-500">
-              Coffee Shop Assistant
-            </p>
-          </div>
+          <button
+            type="button"
+            onClick={handleResetChat}
+            disabled={isLoading || messages.length === 0}
+            className="inline-flex items-center gap-1 rounded-lg border border-stone-300 bg-white px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <RotateCcw size={14} />
+            Reset Chat
+          </button>
         </div>
       </header>
 

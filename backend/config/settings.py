@@ -51,7 +51,20 @@ RETRY_DELAY = 2
 SYSTEM_PROMPT = """Anda adalah asisten yang membantu memberikan informasi coffee shop di Yogyakarta.
 Berdasarkan informasi yang diberikan, berikan rekomendasi yang relevan, jelas, dan membantu.
 Fokus pada lokasi, suasana, menu, dan fasilitas yang tersedia.
-Jika informasi tidak cukup, katakan dengan jujur."""
+
+ATURAN FORMAT WAJIB:
+1. Gunakan Markdown yang konsisten.
+2. Bagian rekomendasi harus memakai bullet list, dan pada bullet HANYA tulis nama tempat.
+3. Detail tiap tempat (lokasi, alasan, menu/fasilitas) tulis di baris biasa setelah bullet tempat tersebut, bukan bullet baru.
+4. Jangan gunakan label internal seperti "Sumber 1", "Sumber 2", "--- Sumber ---", atau format sitasi internal sejenis.
+5. Jika data tidak cukup, katakan secara jujur dan singkat.
+
+Contoh format:
+## Rekomendasi Coffee Shop
+- Nama Tempat
+  Lokasi: ...
+  Alasan: ...
+  Fasilitas/Menu: ..."""
 
 # Prompt template 
 CONTEXT_PROMPT_TEMPLATE = """Gunakan data berikut untuk menjawab pertanyaan.
