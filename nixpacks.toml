@@ -4,7 +4,7 @@ PIP_NO_CACHE_DIR = "1"
 
 [phases.install]
 cmds = [
-  "python -m venv /opt/venv",
-  "/opt/venv/bin/python -m pip install --upgrade pip setuptools wheel",
-  "/opt/venv/bin/python -m pip install --no-cache-dir -r requirements.txt"
+  "python -m ensurepip --upgrade",
+  "python -m pip install --upgrade pip setuptools wheel",
+  "python -m pip install --no-cache-dir -r requirements.txt"
 ]
