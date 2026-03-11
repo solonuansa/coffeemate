@@ -1,142 +1,138 @@
 ﻿# Coffee Shop RAG System
 
-Sistem RAG (Retrieval-Augmented Generation) untuk rekomendasi coffee shop di Yogyakarta berbasis data Instagram, ChromaDB, dan Groq API.
+Sistem tanya-jawab dan rekomendasi coffee shop berbasis RAG (Retrieval-Augmented Generation) untuk wilayah Yogyakarta. Proyek ini menggabungkan pencarian dokumen terstruktur dari data Instagram dengan generasi jawaban natural menggunakan LLM.
 
-## Struktur Proyek
+## Live Demo
+
+- Production Web UI: https://rag-system-coffeeshop.vercel.app/
+
+## Web UI Preview
+
+![Home](docs/assets/web-ui/01-home.png)
+
+## Apa yang Diselesaikan Proyek Ini
+
+Pengguna dapat bertanya seperti:
+- "Rekomendasi coffee shop untuk WFC di Sleman"
+- "Tempat dengan suasana tenang dan menu kopi susu"
+
+Lalu sistem akan:
+1. Mengambil dokumen paling relevan dari vector store.
+2. Menyusun konteks dari metadata dan deskripsi tempat.
+3. Menghasilkan jawaban terformat dengan sumber asal data.
+
+## Fitur Utama
+
+- Pipeline RAG end-to-end: retrieval + generation.
+- API backend FastAPI siap dipakai frontend.
+- Web UI berbasis Next.js dengan server-side proxy ke backend (`/api/chat`).
+- Mode CLI untuk query langsung tanpa UI.
+- Auto-rebuild vector store saat startup jika storage kosong/tidak persisten.
+- Proteksi API:
+  - bearer token opsional,
+  - rate limit per menit per IP,
+  - daily cap per IP (`DAILY_REQUEST_LIMIT_PER_IP`),
+  - CORS allowlist,
+  - security headers pada response.
+
+## Arsitektur Singkat
+
+1. Browser mengirim request ke route Next.js `frontend/app/api/chat/route.ts`.
+2. Route tersebut meneruskan request ke FastAPI (`backend/web_api/main.py`).
+3. FastAPI menjalankan validasi token + usage guard.
+4. `RAGService` mengorkestrasi `Retriever` + `Generator`.
+5. Jawaban dan daftar sumber dikembalikan ke frontend.
+
+## Stack Teknologi
+
+- Backend: FastAPI, Pydantic, LangChain, ChromaDB.
+- Retrieval/Embedding: model Jina (`jina-embeddings-v5-text-small`), data vector di Chroma.
+- Generation: Groq API (`llama-3.3-70b-versatile`).
+- Frontend: Next.js (App Router, route handler sebagai proxy backend).
+- Data processing: pandas untuk ingest CSV menjadi dokumen.
+
+## Struktur Direktori Inti
 
 ```text
-RAG/
-  backend/
-    config/
-      settings.py
-    src/
-      rag_service.py
-      retriever.py
-      generator.py
-      embed.py
-      ingest.py
-    web_api/
-      main.py
-      security.py
-  frontend/
-    app/
-      api/chat/route.ts
-    components/
-    lib/
-    types/
-  scripts/
-    cli.py
-    reingest.py
-  docs/
-    CODE_DOCUMENTATION.md
-    WEB_UI_DEPLOYMENT_PLAN.md
-  experiments/
-  data/
-    processed/
-    vector_store/chroma_db/
-  requirements.txt
+backend/
+  config/settings.py
+  src/
+    rag_service.py
+    retriever.py
+    generator.py
+    ingest.py
+    embed.py
+  web_api/
+    main.py
+    security.py
+frontend/
+  app/api/chat/route.ts
+scripts/
+  cli.py
+  reingest.py
+docs/
+  CODE_DOCUMENTATION.md
+  WEB_UI_DEPLOYMENT_PLAN.md
 ```
 
-## Prasyarat
+## Konfigurasi Penting
 
-- Python 3.11+
-- Node.js 20+
-- npm 10+
+Di `.env` root:
+- `GROQ_API_KEY`: wajib untuk generation.
+- `JINA_API_KEY`: wajib untuk embedding Jina.
+- `API_ACCESS_TOKEN`: opsional, aktifkan auth bearer jika diisi.
+- `RATE_LIMIT_PER_MINUTE`: batas request per menit per IP.
+- `DAILY_REQUEST_LIMIT_PER_IP`: batas request harian per IP.
+- `ALLOWED_ORIGINS`: daftar origin frontend yang diizinkan CORS.
 
-## Setup
+Di `frontend/.env.local`:
+- `BACKEND_API_URL`: URL endpoint backend `/api/chat`.
+- `BACKEND_API_TOKEN`: token backend (samakan dengan `API_ACCESS_TOKEN` jika auth diaktifkan).
 
-1. Install dependency backend:
+## API Kontrak
 
-```bash
-pip install -r requirements.txt
-```
+- `GET /health`: status kesiapan service.
+- `POST /api/chat`: proses pertanyaan RAG.
 
-2. Install dependency frontend:
-
-```bash
-cd frontend
-npm install
-```
-
-3. Buat `.env` di root proyek:
-
-```env
-GROQ_API_KEY=your_groq_api_key
-
-# Optional security hardening
-API_ACCESS_TOKEN=your_strong_token
-RATE_LIMIT_PER_MINUTE=20
-DAILY_REQUEST_LIMIT_PER_IP=300
-ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
-```
-
-4. Buat `frontend/.env.local` (bisa copy dari `frontend/.env.local.example`):
-
-```env
-BACKEND_API_URL=http://127.0.0.1:8000/api/chat
-BACKEND_API_TOKEN=your_strong_token
-```
-
-Catatan: jika `API_ACCESS_TOKEN` di backend diisi, `BACKEND_API_TOKEN` harus sama.
-
-## Menjalankan Aplikasi Web
-
-1. Jalankan backend FastAPI dari root:
-
-```bash
-uvicorn backend.web_api.main:app --reload
-```
-
-2. Jalankan frontend (terminal lain):
-
-```bash
-cd frontend
-npm run dev:3010
-```
-
-3. Buka `http://localhost:3010`.
-
-## Menjalankan Mode CLI
-
-```bash
-python scripts/cli.py
-```
-
-## Rebuild Vector Store
-
-Jika data di `data/processed` berubah:
-
-```bash
-python scripts/reingest.py
-```
-
-## API Endpoint
-
-- `GET /health` untuk status service.
-- `POST /api/chat` untuk query RAG.
-
-Contoh payload:
-
+Request:
 ```json
 {
   "question": "Rekomendasikan coffee shop untuk WFC di Sleman"
 }
 ```
 
-## Security Saat Ini
+Response:
+```json
+{
+  "answer": "....",
+  "sources": [
+    { "nama": "@akun_ig", "lokasi": "Sleman" }
+  ]
+}
+```
 
-- Optional bearer token (`API_ACCESS_TOKEN`).
-- Rate limit per IP (`RATE_LIMIT_PER_MINUTE`).
-- Daily cap per IP (`DAILY_REQUEST_LIMIT_PER_IP`).
-- CORS whitelist (`ALLOWED_ORIGINS`).
-- Security headers di middleware FastAPI.
+## Setup Singkat
 
-Catatan: limiter masih in-memory (`backend/web_api/security.py`), cocok untuk single instance.
+```bash
+pip install -r requirements.txt
+cd frontend && npm install
+```
 
-## Deployment Ringkas
+Buat `.env` di root dan `frontend/.env.local`, lalu jalankan:
 
-- Frontend: Vercel.
-- Backend: Render / Railway / Fly.io.
-- Gunakan persistent volume jika tetap menyimpan ChromaDB secara lokal.
-- Untuk Railway tanpa persistent volume, backend akan auto-build vector store saat startup dari `data/processed/extracted_data_sahabatai.csv`.
-- Pastikan `JINA_API_KEY` tersedia di environment Railway agar proses auto-build berhasil.
+```bash
+uvicorn backend.web_api.main:app --reload
+cd frontend && npm run dev:3010
+```
+
+Mode CLI:
+
+```bash
+python scripts/cli.py
+```
+
+Rebuild vector store:
+
+```bash
+python scripts/reingest.py
+```
