@@ -159,6 +159,18 @@ export default function ChatShell() {
                 <p className="text-sm text-stone-500">
                   Tanyakan rekomendasi coffee shop terbaik di Yogyakarta untuk WFC, nongkrong, atau meeting.
                 </p>
+                <p className="mt-3 text-xs text-stone-600">
+                  Data rekomendasi berasal dari akun Instagram{" "}
+                  <a
+                    href="https://www.instagram.com/referensikopi/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-semibold underline hover:text-stone-800"
+                  >
+                    @referensikopi
+                  </a>
+                  .
+                </p>
               </div>
               <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
                 {["WFC Area Sleman", "Kopi enak di Kota", "Buka 24 Jam"].map((tag) => (
