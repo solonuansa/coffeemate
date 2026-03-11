@@ -11,7 +11,7 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 VECTOR_STORE_DIR = DATA_DIR / "vector_store" / "chroma_db"
 
 # Models
-EMBEDDING_MODEL = "intfloat/multilingual-e5-large"  # Sentence transformer model
+EMBEDDING_MODEL = "jina-embeddings-v5-text-small"
 GROQ_MODEL = "llama-3.3-70b-versatile"  # Groq LLM model
 
 # Embedding
@@ -20,6 +20,8 @@ INGEST_BATCH_SIZE = 100
 
 # API Keys
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+JINA_EMBEDDING_URL = os.getenv("JINA_EMBEDDING_URL", "https://api.jina.ai/v1/embeddings")
 
 # API Security
 API_ACCESS_TOKEN = os.getenv("API_ACCESS_TOKEN", "")

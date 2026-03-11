@@ -6,7 +6,7 @@ from typing import List
 from langchain_core.documents import Document
 from langchain_chroma import Chroma
 from backend.src.embed import EmbeddingModel
-from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, PROCESSED_DATA_DIR, EMBEDDING_BATCH_SIZE, INGEST_BATCH_SIZE
+from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, PROCESSED_DATA_DIR, INGEST_BATCH_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +29,11 @@ class DataIngestor:
             def embed_documents(self, texts):
                 """Embed dokumen dengan prefix 'passage:'"""
                 texts = [f"passage: {t}" for t in texts]
-                return self.model.model.encode(
-                    texts,
-                    batch_size=EMBEDDING_BATCH_SIZE,
-                    show_progress_bar=True,
-                    normalize_embeddings=True
-                ).tolist()
+                return self.model.embed_texts(texts)
             
             def embed_query(self, text):
                 """Embed query dengan prefix 'query:'"""
-                return self.model.model.encode(
-                    f"query: {text}",
-                    normalize_embeddings=True
-                ).tolist()
+                return self.model.embed_text(f"query: {text}")
         
         return EmbeddingWrapper(self.embedding_model)
     

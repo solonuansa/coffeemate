@@ -1,7 +1,7 @@
 import logging
 from langchain_community.vectorstores import Chroma
 from backend.src.embed import EmbeddingModel
-from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, TOP_K_RESULTS, EMBEDDING_BATCH_SIZE, SCORE_THRESHOLD
+from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, TOP_K_RESULTS, SCORE_THRESHOLD
 
 logger = logging.getLogger(__name__)
 
@@ -45,17 +45,10 @@ class Retriever:
             
             def embed_documents(self, texts):
                 texts = [f"passage: {t}" for t in texts]
-                return self.model.model.encode(
-                    texts,
-                    batch_size=EMBEDDING_BATCH_SIZE,
-                    normalize_embeddings=True
-                ).tolist()
+                return self.model.embed_texts(texts)
             
             def embed_query(self, text):
-                return self.model.model.encode(
-                    f"query: {text}",
-                    normalize_embeddings=True
-                ).tolist()
+                return self.model.embed_text(f"query: {text}")
         
         return EmbeddingWrapper(self.embedding_model)
     
