@@ -1,6 +1,6 @@
-﻿# Coffee Shop RAG System
+﻿# CoffeeMate RAG System
 
-Sistem tanya-jawab dan rekomendasi coffee shop berbasis RAG (Retrieval-Augmented Generation) untuk wilayah Yogyakarta. Proyek ini menggabungkan pencarian dokumen terstruktur dari data Instagram dengan generasi jawaban natural menggunakan LLM.
+Sistem tanya-jawab dan rekomendasi coffee shop berbasis RAG (Retrieval-Augmented Generation) untuk wilayah Yogyakarta. Proyek ini menggabungkan pencarian dokumen terstruktur dari data Instagram dengan generasi jawaban menggunakan LLM. Tujuannya memberikan rekomendasi tempat ngopi yang sesuai dengan preferensi pengguna, berdasarkan data aktual dari media sosial. Data yang digunakan berasal dari scraping akun Instagram [@referensikopi](https://www.instagram.com/referensikopi/).
 
 ## Live Demo
 
