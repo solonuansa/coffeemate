@@ -22,6 +22,19 @@ INGEST_BATCH_SIZE = 100
 # API Keys
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
+# API Security
+API_ACCESS_TOKEN = os.getenv("API_ACCESS_TOKEN", "")
+RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "20"))
+DAILY_REQUEST_LIMIT_PER_IP = int(os.getenv("DAILY_REQUEST_LIMIT_PER_IP", "300"))
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    ).split(",")
+    if origin.strip()
+]
+
 # Retrieval
 TOP_K_RESULTS = 5 
 SCORE_THRESHOLD = 0.3  

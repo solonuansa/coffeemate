@@ -118,8 +118,8 @@ def main():
                 continue
             
             # Input sanitization
-            if len(question) > 1000:
-                print("Pertanyaan terlalu panjang. Maksimal 1000 karakter.")
+            if len(question) > 500:
+                print("Pertanyaan terlalu panjang. Maksimal 500 karakter.")
                 continue
             
             response = app.query(question)

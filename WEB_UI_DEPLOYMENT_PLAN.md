@@ -1,156 +1,116 @@
 # Web UI and Deployment Plan - Next.js + FastAPI
 
 ## 1. Tujuan
-- Membangun UI web dengan React yang bagus, terstruktur, dan interaktif.
-- Memisahkan concern frontend dan backend agar mudah scale.
-- Menjaga pipeline RAG existing tetap dipakai tanpa rewrite besar.
+- Menjalankan UI chat production-ready di Vercel.
+- Menjaga backend RAG tetap stabil di service terpisah (FastAPI).
+- Menjaga keamanan API key dan kontrol usage.
 
-## 2. Keputusan Teknologi
-- Frontend: `Next.js` (React, App Router, TypeScript).
-- Backend API: `FastAPI` (tetap Python, reuse logic RAG sekarang).
-- Vector DB awal: `ChromaDB` (tetap dipakai untuk fase MVP).
-- Styling: CSS Modules atau Tailwind (pilih satu, default rekomendasi: Tailwind untuk kecepatan).
+## 2. Arsitektur Deploy (Current)
+- Frontend: `Next.js` di Vercel.
+- Frontend route server-side: `frontend/app/api/chat/route.ts` (proxy ke backend).
+- Backend: `FastAPI` (`web_api/main.py`) di Render/Railway/Fly (recommended non-serverless).
+- Vector store: `ChromaDB` persisted volume di backend platform.
 
-## 3. Kenapa Next.js
-- Struktur project jelas untuk page, layout, komponen, dan API integration.
-- DX bagus untuk komponen interaktif (chat UI, source cards, state handling).
-- Mudah deploy frontend ke Vercel.
-- Mendukung optimasi produksi (bundling, caching, image/font optimization).
+Flow:
+1. Browser hit `POST /api/chat` (Vercel).
+2. Vercel function forward ke FastAPI (`BACKEND_API_URL`).
+3. FastAPI validate auth token + rate-limit + daily cap.
+4. FastAPI panggil RAG pipeline -> return answer+sumber.
 
-## 4. Scope Fitur MVP
-- Chat interface dengan message history.
-- Input multi-line dengan keyboard shortcut (`Enter` kirim, `Shift+Enter` newline).
-- Panel sumber per jawaban (`nama`, `lokasi`).
-- Loading/typing indicator.
-- Error state + tombol retry.
-- Simpan sesi chat di `sessionStorage`.
+## 3. Status Implementasi
+- [x] Phase 1: FastAPI API layer + service abstraction (`src/rag_service.py`)
+- [x] Phase 2: Next.js app setup + chat UI + API proxy route
+- [x] Security baseline:
+  - optional bearer token (`API_ACCESS_TOKEN`)
+  - per-IP rate-limit (`RATE_LIMIT_PER_MINUTE`)
+  - daily cap per-IP (`DAILY_REQUEST_LIMIT_PER_IP`)
+  - CORS whitelist (`ALLOWED_ORIGINS`)
+  - security headers di backend
 
-## 5. UX/UI Spesifikasi
-- Layout 3 area: header, chat timeline, input dock.
-- Visual hierarchy kuat:
-  - user bubble dan assistant bubble beda jelas,
-  - source cards ditampilkan terstruktur di bawah jawaban.
-- Interaktif:
-  - optimistic render untuk pesan user,
-  - auto-scroll ke pesan terbaru,
-  - transisi ringan saat pesan baru muncul.
-- Responsive:
-  - mobile first,
-  - sticky input di bawah layar.
+## 4. Environment Variables
 
-## 6. Arsitektur Sistem
-- Frontend Next.js memanggil backend FastAPI via REST.
-- FastAPI expose endpoint:
-  - `POST /api/chat`
-  - `GET /health`
-- Service layer backend:
-  - `src/rag_service.py` untuk orkestrasi retriever + generator.
-- Gunakan schema request/response konsisten:
-  - request: `{"question": "..."}`.
-  - response: `{"answer": "...", "sources": [{"nama": "...", "lokasi": "..."}]}`.
+### Backend (`.env` di backend service)
+- `GROQ_API_KEY=...`
+- `API_ACCESS_TOKEN=...` (recommended)
+- `RATE_LIMIT_PER_MINUTE=20`
+- `DAILY_REQUEST_LIMIT_PER_IP=300`
+- `ALLOWED_ORIGINS=https://<your-vercel-domain>,http://localhost:3000,http://127.0.0.1:3000`
 
-## 7. Rencana Implementasi Bertahap
+### Frontend Vercel (Project Settings > Environment Variables)
+- `BACKEND_API_URL=https://<your-backend-domain>/api/chat`
+- `BACKEND_API_TOKEN=<same value as API_ACCESS_TOKEN backend>`
 
-### Phase 1 - Backend API Stabil (Hari 1)
-- Refactor logic dari `app.py` ke `src/rag_service.py`.
-- Buat FastAPI app khusus API (mis. `web_api/main.py`).
-- Tambah validasi input, exception handling, logging durasi query.
-- Tambah CORS untuk domain frontend.
+Catatan:
+- Tidak perlu `NEXT_PUBLIC_API_BASE_URL` untuk arsitektur ini.
+- `BACKEND_API_TOKEN` aman karena dipakai server-side di route handler Next.js.
 
-### Phase 2 - Setup Frontend Next.js (Hari 2)
-- Inisialisasi Next.js + TypeScript.
-- Buat struktur folder:
-  - `app/`
-  - `components/`
-  - `lib/`
-  - `types/`
-- Buat service client untuk memanggil backend chat API.
+## 5. Step-by-Step Deployment (Recommended)
 
-### Phase 3 - UI Chat Interaktif (Hari 3)
-- Implement komponen:
-  - `ChatShell`
-  - `MessageList`
-  - `MessageBubble`
-  - `SourcesPanel`
-  - `ChatInput`
-- Tambah state management lokal dengan reducer/hook custom.
-- Tambah loading, error, retry, dan session persistence.
+### A. Deploy Backend FastAPI dulu
+1. Push repo ke GitHub.
+2. Buat service backend di Render/Railway/Fly.
+3. Set build/start command:
+   - build: `pip install -r requirements.txt`
+   - start: `uvicorn web_api.main:app --host 0.0.0.0 --port $PORT`
+4. Mount persistent volume untuk `data/vector_store/chroma_db`.
+5. Set semua env backend (lihat section 4).
+6. Verify:
+   - `GET /health` -> `service_ready: true`
+   - `POST /api/chat` -> 200 (dengan Authorization jika token aktif)
 
-### Phase 4 - Polish dan Aksesibilitas (Hari 4)
-- Rapikan design token (warna, radius, spacing, typography).
-- Perbaiki kontras, keyboard navigation, focus state, ARIA label.
-- Tambah empty state dan helper text yang jelas.
+### B. Deploy Frontend ke Vercel
+1. Import project dari GitHub ke Vercel.
+2. Root directory: `frontend`.
+3. Framework: Next.js (auto-detected).
+4. Tambahkan env Vercel:
+   - `BACKEND_API_URL`
+   - `BACKEND_API_TOKEN`
+5. Deploy.
 
-### Phase 5 - Testing dan Hardening (Hari 5)
-- Uji skenario sukses, gagal, timeout, query kosong, query panjang.
-- Basic test frontend (komponen utama) dan backend endpoint.
-- Dokumentasi run local + env setup + troubleshooting.
+### C. Integrasi CORS dan Domain
+1. Ambil domain Vercel final (mis. `https://coffeemate.vercel.app`).
+2. Tambahkan domain tersebut ke `ALLOWED_ORIGINS` backend.
+3. Redeploy backend agar CORS baru aktif.
 
-## 8. Struktur Folder Target
-```text
-RAG/
-  web-api/
-    main.py
-  src/
-    rag_service.py
-  frontend/
-    app/
-    components/
-    lib/
-    types/
-    public/
-    package.json
-```
+## 6. Verifikasi Pasca Deploy
+- [ ] UI kebuka normal dari domain Vercel.
+- [ ] Query berhasil (network browser hit `POST /api/chat` Vercel, bukan backend langsung).
+- [ ] Backend menerima request valid dan return answer+sumber.
+- [ ] Token invalid -> backend return 401.
+- [ ] Burst request -> backend return 429 sesuai rate-limit.
+- [ ] Tidak ada credential atau token tampil di browser DevTools (client env).
 
-## 9. Deployment Strategy
+## 7. Monitoring dan Operasional
+- Log wajib:
+  - latency request,
+  - status code,
+  - 401 dan 429 frequency,
+  - error 5xx.
+- Alert minimum:
+  - spike 5xx,
+  - spike latency,
+  - usage limit harian hampir habis.
+- Rotasi token:
+  - ubah `API_ACCESS_TOKEN` backend,
+  - update `BACKEND_API_TOKEN` di Vercel,
+  - redeploy keduanya.
 
-### Frontend
-- Deploy `Next.js` ke Vercel.
-- Set environment variable `NEXT_PUBLIC_API_BASE_URL` ke URL backend FastAPI.
+## 8. Security Hardening (Next)
+- Tambahkan WAF/rate limiting edge (Cloudflare/Vercel Firewall) di depan frontend.
+- Tambahkan logging usage per session/user-id (jika auth user sudah ada).
+- Pindahkan in-memory limiter ke Redis untuk multi-instance backend.
 
-### Backend
-- Deploy FastAPI ke Render, Railway, atau Fly.io (server penuh/non-serverless disarankan).
-- Mount persistent volume jika ChromaDB file tetap dipakai.
-- Set env var `GROQ_API_KEY` di platform backend.
+## 9. Risiko dan Mitigasi
+- Risiko: backend cold start / model load lambat.
+  - Mitigasi: gunakan service non-sleep, warm instance.
+- Risiko: limiter in-memory tidak sinkron antar instance.
+  - Mitigasi: migrasi limiter ke Redis.
+- Risiko: Chroma persistence di volume lokal service.
+  - Mitigasi: backup berkala atau rencana migrasi ke pgvector.
 
-### Kenapa Tidak Full di Vercel
-- Vercel serverless kurang cocok untuk RAG backend berbasis Python + local vector store persistence.
-- Risiko timeout dan cold start lebih tinggi.
-- File system ephemeral menyulitkan penyimpanan ChromaDB jangka panjang.
-
-## 10. Vector DB Decision: Chroma vs FAISS vs PostgreSQL
-
-### Rekomendasi Saat Ini
-- Tetap pakai `ChromaDB` untuk MVP.
-- Tidak perlu pindah ke FAISS sekarang.
-- Siapkan jalur migrasi ke `PostgreSQL + pgvector` saat kebutuhan naik.
-
-### Kapan Tetap ChromaDB
-- Single app, traffic masih rendah-menengah.
-- Fokus cepat release.
-- Metadata filtering belum kompleks.
-
-### Kapan Migrasi ke PostgreSQL + pgvector
-- Mulai butuh reliability produksi (backup, restore, durability).
-- Butuh query metadata lebih kompleks.
-- Mulai ada multi-user dan kebutuhan observability/data governance.
-
-### Posisi FAISS
-- FAISS bagus untuk eksperimen retrieval cepat.
-- Kurang ideal sebagai database produksi utama dibanding PostgreSQL+pgvector untuk use case aplikasi web.
-
-## 11. Roadmap Migrasi Database (Jika Diperlukan)
-- Tahap 1: abstraksikan layer vector store (`VectorStoreRepository` interface).
-- Tahap 2: implement adapter `ChromaRepository`.
-- Tahap 3: implement adapter `PgVectorRepository`.
-- Tahap 4: dual-run evaluasi kualitas retrieval.
-- Tahap 5: cutover bertahap ke pgvector.
-
-## 12. Checklist Eksekusi
-- [ ] Refactor service RAG untuk API-first design.
-- [ ] Implement FastAPI endpoint yang stabil.
-- [ ] Setup Next.js frontend.
-- [ ] Bangun UI chat yang interaktif dan responsive.
-- [ ] Deploy frontend ke Vercel.
-- [ ] Deploy backend ke Render/Railway/Fly.
-- [ ] Monitoring dasar dan uji end-to-end.
+## 10. Keputusan Platform
+- Vercel tepat untuk UI Next.js.
+- Vercel tidak disarankan untuk full backend RAG Python + local Chroma persistence.
+- Kombinasi yang dipakai:
+  - Frontend: Vercel
+  - Backend: Render/Railway/Fly (recommended)

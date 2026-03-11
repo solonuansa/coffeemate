@@ -1,155 +1,185 @@
 # Coffee Shop RAG System
 
-Sistem RAG (Retrieval-Augmented Generation) untuk rekomendasi coffee shop di Yogyakarta berbasis data Instagram menggunakan ChromaDB dan Groq API.
+Sistem RAG (Retrieval-Augmented Generation) untuk rekomendasi coffee shop di Yogyakarta berbasis data Instagram, ChromaDB, dan Groq API.
 
-## Deskripsi
+## Arsitektur Saat Ini
 
-Sistem ini dibangun melalui serangkaian tahap pemrosesan data, mulai dari pengumpulan data Instagram, pembersihan teks, pemodelan topik, ekstraksi informasi dengan LLM, hingga penyimpanan ke knowledge base berbasis vektor untuk keperluan retrieval dan generasi jawaban.
+- `frontend/`: Next.js (React + TypeScript) untuk UI chat.
+- `web_api/`: FastAPI backend untuk endpoint RAG.
+- `src/`: core pipeline RAG (retrieval + generation + service layer).
+- `data/vector_store/chroma_db`: persistent vector store ChromaDB.
 
-### Alur Pipeline
-
-1. **Pengumpulan Data** - Data caption Instagram coffee shop di Yogyakarta dikumpulkan menggunakan Instagrapi.
-
-2. **Preprocessing & Pemodelan Topik (LDA)** - Caption dibersihkan dari spam, noise, dan stopword, lalu dimodelkan menggunakan Latent Dirichlet Allocation (LDA) dengan 4 topik. Setiap caption diberi label dominan (single-label) maupun label multi (multi-label) berdasarkan distribusi probabilitas topik. Label topik yang digunakan: Menu Variatif, Ngopi Santai, Area Lengkap, dan WFC Nyaman.
-
-3. **Ekstraksi Informasi dengan LLM** - Setiap caption diproses menggunakan model Gemma 2 9B CPT Sahabatai Instruct (`GoToCompany/gemma2-9b-cpt-sahabatai-v1-instruct`) melalui platform modal.com untuk mengekstrak dua komponen: deskripsi (informasi faktual tempat, menu, atau jam operasional) dan opini (penilaian eksplisit maupun implisit terhadap tempat, menu, atau suasana).
-
-4. **Pembangunan Knowledge Base** - Hasil ekstraksi disusun menjadi dokumen terstruktur, lalu dikonversi menjadi vector embeddings menggunakan `intfloat/multilingual-e5-large` dan disimpan ke ChromaDB secara persisten.
-
-5. **Retrieval & Generasi Jawaban** - Sistem menerima query pengguna, mencari dokumen relevan dari ChromaDB, lalu menghasilkan jawaban menggunakan Groq API (model `llama-3.3-70b-versatile`).
+Alur request:
+1. User kirim pertanyaan dari UI Next.js.
+2. Next.js route `/api/chat` meneruskan request ke FastAPI (server-to-server).
+3. FastAPI melakukan retrieval dari ChromaDB dan generation via Groq.
+4. Jawaban + sumber dikembalikan ke UI.
 
 ## Struktur Project
 
-```
+```text
 RAG/
-├── data/
-│   ├── processed/        # Data hasil preprocessing dan kategorisasi LDA
-│   └── vector_store/     # ChromaDB vector database (di-ignore git)
-├── src/
-│   ├── __init__.py
-│   ├── ingest.py         # Load & persiapan dokumen dari CSV
-│   ├── embed.py          # Embedding menggunakan sentence-transformers
-│   ├── retriever.py      # Pencarian dokumen relevan dari ChromaDB
-│   └── generator.py      # Generasi jawaban menggunakan Groq API
-├── config/
-│   └── settings.py       # Konfigurasi model, path, dan parameter sistem
-├── archive/              # Notebook eksplorasi dan kode lama
-├── app.py                # Entry point aplikasi
-├── reingest.py           # Script untuk rebuild vector store
-├── requirements.txt
-├── .env                  # API key 
-└── README.md
+  frontend/                 # Next.js app (UI chat)
+    app/
+      api/chat/route.ts     # Proxy route ke FastAPI
+    components/
+    lib/
+    types/
+  web_api/
+    main.py                 # FastAPI entrypoint
+    security.py             # In-memory guard (rate limit + daily cap)
+  src/
+    rag_service.py          # Orkestrasi retriever + generator
+    retriever.py
+    generator.py
+    embed.py
+    ingest.py
+  config/
+    settings.py             # Konfigurasi model, API, security, path
+  data/
+    processed/
+    vector_store/chroma_db/
+  app.py                    # CLI mode
+  reingest.py               # Rebuild vector store
+  requirements.txt
 ```
 
-## Quick Start
+## Prerequisites
 
-### 1. Install Dependencies
+- Python 3.11+
+- Node.js 20+
+- npm 10+
+
+## Setup
+
+### 1. Install Python dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Set Groq API Key
+### 2. Install Frontend dependencies
 
-Dapatkan API key dari https://console.groq.com/, lalu buat file `.env` di root project:
-
-```
-GROQ_API_KEY=your_api_key_here
-```
-
-Atau set secara manual di terminal:
-
-**Windows PowerShell:**
-```powershell
-$env:GROQ_API_KEY = "your_api_key_here"
-```
-
-**Windows CMD:**
-```cmd
-set GROQ_API_KEY=your_api_key_here
-```
-
-**Linux/Mac:**
 ```bash
-export GROQ_API_KEY="your_api_key_here"
+cd frontend
+npm install
 ```
 
-### 3. Jalankan Aplikasi
+### 3. Konfigurasi environment backend (`.env` di root)
+
+Contoh:
+
+```env
+GROQ_API_KEY=your_groq_api_key
+
+# Optional security hardening
+API_ACCESS_TOKEN=your_strong_token
+RATE_LIMIT_PER_MINUTE=20
+DAILY_REQUEST_LIMIT_PER_IP=300
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+```
+
+### 4. Konfigurasi environment frontend (`frontend/.env.local`)
+
+Bisa salin dari `frontend/.env.local.example`.
+
+```env
+BACKEND_API_URL=http://127.0.0.1:8000/api/chat
+BACKEND_API_TOKEN=your_strong_token
+```
+
+`BACKEND_API_TOKEN` harus sama dengan `API_ACCESS_TOKEN` jika backend token protection diaktifkan.
+
+## Menjalankan Aplikasi (Web)
+
+Jalankan backend FastAPI:
+
+```bash
+uvicorn web_api.main:app --reload
+```
+
+Jalankan frontend Next.js (terminal terpisah):
+
+```bash
+cd frontend
+npm run dev
+```
+
+Lalu buka: `http://localhost:3000`
+
+## Menjalankan Aplikasi (CLI)
 
 ```bash
 python app.py
 ```
 
-## Cara Menggunakan
+## API Endpoints
 
-### Sebagai Script
+### `GET /health`
 
-```bash
-python app.py
-```
+Status kesiapan service backend.
 
-### Sebagai Module
+Contoh response:
 
-```python
-from app import RAGApp
-
-app = RAGApp()
-response = app.query("Rekomendasikan coffee shop untuk bekerja")
-app.print_response(response)
-```
-
-### Format Response
-
-```python
+```json
 {
-    "answer": "Rekomendasi dari sistem...",
-    "sources": [
-        {"nama": "Nama Coffee Shop", "lokasi": "Lokasi"},
-        ...
-    ]
+  "status": "ok",
+  "service_ready": true,
+  "error": null
 }
 ```
 
-## Konfigurasi
+### `POST /api/chat`
 
-Edit `config/settings.py` untuk mengubah:
-- Embedding model (default: `intfloat/multilingual-e5-large`)
-- Groq model (default: `llama-3.3-70b-versatile`)
-- Jumlah dokumen yang di-retrieve (`TOP_K_RESULTS`)
-- Temperature dan max tokens
-- System prompt dan prompt template
+Request:
 
-## Komponen
+```json
+{
+  "question": "Rekomendasikan coffee shop untuk WFC di Sleman"
+}
+```
 
-### `src/embed.py`
-Mengelola embedding teks menggunakan `intfloat/multilingual-e5-large` via sentence-transformers dengan format passage/query.
+Response:
 
-### `src/retriever.py`
-Mengambil dokumen paling relevan dari ChromaDB berdasarkan similarity search, lalu memformat context untuk dikirim ke LLM.
+```json
+{
+  "answer": "Rekomendasi ...",
+  "sources": [
+    { "nama": "Nama Coffee Shop", "lokasi": "Sleman" }
+  ]
+}
+```
 
-### `src/generator.py`
-Mengirim context dan query ke Groq API menggunakan model `llama-3.3-70b-versatile` untuk menghasilkan jawaban.
+## Security dan Usage Guard
 
-### `src/ingest.py`
-Memuat data dari CSV hasil preprocessing, menyusun dokumen terstruktur, dan menyimpannya ke ChromaDB.
+Backend saat ini sudah memiliki:
+- Optional bearer token auth (`API_ACCESS_TOKEN`).
+- Rate limit per IP (`RATE_LIMIT_PER_MINUTE`).
+- Daily cap per IP (`DAILY_REQUEST_LIMIT_PER_IP`).
+- Security headers (`X-Frame-Options`, `X-Content-Type-Options`, dll).
+- CORS origin whitelist (`ALLOWED_ORIGINS`).
 
-### `reingest.py`
-Script untuk melakukan rebuild ulang vector store dari data terbaru jika terdapat perubahan pada data processed.
+Catatan:
+- Guard saat ini berbasis in-memory (`web_api/security.py`) dan cocok untuk single instance.
+- Untuk multi-instance production, ganti ke shared store (misalnya Redis).
 
-## Contoh Query
+## Rebuild Vector Store
 
-- "Rekomendasikan coffee shop yang nyaman untuk bekerja"
-- "Ada tempat kopi dengan area outdoor di Sleman?"
-- "Coffee shop dengan menu variatif dan harga terjangkau"
-- "Tempat kopi yang cocok untuk meeting"
+Jika data processed berubah:
 
-## Archive
+```bash
+python reingest.py
+```
 
-Notebook eksplorasi (EDA, preprocessing, LDA, knowledge base) dan kode scraping Instagrapi tersimpan di folder `archive/`.
+## Deployment Rekomendasi
 
-## Catatan
+- Frontend: Vercel.
+- Backend FastAPI: Render / Railway / Fly.io (non-serverless lebih aman untuk workload RAG + storage).
+- Simpan `GROQ_API_KEY` dan token security via environment variables platform deploy.
+- Gunakan persistent volume jika tetap memakai ChromaDB lokal.
 
-- Sistem menggunakan ChromaDB yang sudah dibangun sebelumnya. Untuk rebuild, jalankan `reingest.py` atau gunakan notebook di `archive/notebooks/`.
-- Groq API tersedia secara gratis dengan rate limit. Cek status di https://console.groq.com/.
-- Model embedding `intfloat/multilingual-e5-large` akan diunduh otomatis saat pertama kali dijalankan.
-- Folder `data/vector_store/` dan file `.env` tidak di-track git.
+## Catatan Tambahan
+
+- Model embedding akan diunduh saat first run jika belum ada cache.
+- Folder `data/vector_store/` dan `.env` sebaiknya tidak di-track git.
+- Terdapat deprecation warning untuk class Chroma dari LangChain; ke depan disarankan migrasi ke `langchain-chroma`.

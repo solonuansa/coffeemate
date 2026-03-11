@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f3efe8;
-  --foreground: #1f1a17;
+  --background: #fdfbf7;
+  --foreground: #1c1917;
+  --primary-accent: #0f172a; /* Slate 900 / Navy feel */
 }
 
 @theme inline {
@@ -14,9 +15,28 @@
 
 body {
   background:
-    radial-gradient(circle at 20% 10%, #fff6db 0%, transparent 35%),
-    radial-gradient(circle at 80% 0%, #ffe8d6 0%, transparent 30%),
+    radial-gradient(100% 100% at 50% 0%, #fffbf2 0%, transparent 100%),
+    radial-gradient(100% 100% at 0% 100%, #fef3e5 0%, transparent 100%),
+    radial-gradient(100% 100% at 100% 100%, #f6ebe1 0%, transparent 100%),
     var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), sans-serif;
+  min-height: 100vh;
+  background-attachment: fixed;
+}
+
+/* Custom minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
 }
