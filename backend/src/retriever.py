@@ -1,7 +1,8 @@
 import logging
-from langchain_community.vectorstores import Chroma
-from backend.src.embed import EmbeddingModel
 from backend.config.settings import VECTOR_STORE_DIR, EMBEDDING_MODEL, TOP_K_RESULTS, SCORE_THRESHOLD
+from langchain_chroma import Chroma
+
+from backend.src.embed import EmbeddingModel
 
 logger = logging.getLogger(__name__)
 

@@ -73,7 +73,7 @@ Opini:
         
         # Load CSV
         df = pd.read_csv(csv_path)
-        print(f"✓ Berhasil memuat {len(df)} baris data")
+        print(f"Berhasil memuat {len(df)} baris data")
         print()
         
         # Validate required columns

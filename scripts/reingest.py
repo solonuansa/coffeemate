@@ -22,14 +22,14 @@ def reingest_data():
     if VECTOR_STORE_DIR.exists():
         print(f"Menghapus vector store lama...")
         shutil.rmtree(VECTOR_STORE_DIR)
-        print("✓ Vector store lama berhasil dihapus")
+        print("Vector store lama berhasil dihapus")
         print()
     
     # 2. Ingest data
     csv_path = PROCESSED_DATA_DIR / "extracted_data_sahabatai.csv"
     
     if not csv_path.exists():
-        print(f"❌ File tidak ditemukan: {csv_path}")
+        print(f"File tidak ditemukan: {csv_path}")
         return
     
     try:
@@ -38,10 +38,10 @@ def reingest_data():
         
         print()
         print("=" * 60)
-        print("✓ Ingest selesai!")
+        print("Ingest selesai!")
         print("=" * 60)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
 
 
 if __name__ == "__main__":
