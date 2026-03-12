@@ -4,7 +4,7 @@ Sistem tanya-jawab dan rekomendasi coffee shop berbasis RAG (Retrieval-Augmented
 
 ## Live Demo
 
-- Production Web UI: https://coffee-mate.vercel.app/
+- Production Web UI: https://mycoffeemate.vercel.app/
 
 ## Web UI Preview
 

@@ -3,7 +3,7 @@
 Folder ini disiapkan untuk screenshot Web UI production.
 
 Production URL:
-- https://rag-system-coffeeshop.vercel.app/
+- https://mycoffeemate.vercel.app/
 
 Saran nama file:
 - 01-home.png

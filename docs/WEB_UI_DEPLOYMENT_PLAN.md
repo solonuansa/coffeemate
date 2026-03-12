@@ -8,7 +8,7 @@
 
 ## 2. Link Production Web UI
 
-- URL: https://coffee-mate.vercel.app/
+- URL: https://mycoffeemate.vercel.app/
 
 Gunakan URL ini sebagai entry point utama untuk demo dan validasi user flow.
 
@@ -23,7 +23,7 @@ Gunakan URL ini sebagai entry point utama untuk demo dan validasi user flow.
 
 ### Request Flow
 
-1. User membuka `https://coffee-mate.vercel.app/`.
+1. User membuka `https://mycoffeemate.vercel.app/`.
 2. UI mengirim `POST /api/chat` ke Next.js route.
 3. Route Next.js mem-forward ke backend (`BACKEND_API_URL`).
 4. Backend validasi token (jika aktif), rate limit per menit, dan daily cap per IP.
@@ -85,7 +85,7 @@ Catatan:
 
 ### Phase C - Integrasi Domain, CORS, dan Keamanan
 
-1. Pastikan domain final frontend sudah benar: `https://coffee-mate.vercel.app`.
+1. Pastikan domain final frontend sudah benar: `https://mycoffeemate.vercel.app`.
 2. Tambahkan domain itu ke `ALLOWED_ORIGINS` backend.
 3. Redeploy backend agar setting CORS terbaru aktif.
 4. Verifikasi behavior:
@@ -161,6 +161,6 @@ Contoh pemakaian di markdown:
 
 ## 10. Referensi Cepat
 
-- Web UI Production: https://coffee-mate.vercel.app/
+- Web UI Production: https://mycoffeemate.vercel.app/
 - Backend endpoint (contoh): `https://<backend-domain>/api/chat`
 - Health check: `https://<backend-domain>/health`
