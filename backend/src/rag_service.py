@@ -1,10 +1,23 @@
 import logging
+import re
 from typing import Any, Dict, List
 
 from backend.src.generator import Generator
 from backend.src.retriever import Retriever
 
 logger = logging.getLogger(__name__)
+
+UNSAFE_PROMPT_PATTERNS = [
+    r"\bignore\b.{0,40}\b(instruction|system|aturan|perintah)\b",
+    r"\b(jailbreak|prompt injection|dan\b mode)\b",
+    r"\b(system prompt|developer message|hidden prompt)\b",
+    r"\b(reveal|bocorkan|leak)\b.{0,40}\b(prompt|token|secret|api key|kunci)\b",
+]
+
+OUT_OF_SCOPE_REPLY = (
+    "Maaf, saya hanya bisa membantu pertanyaan seputar rekomendasi coffee shop "
+    "dan informasi terkait di wilayah Yogyakarta berdasarkan data yang tersedia."
+)
 
 
 class RAGServiceError(Exception):
@@ -32,10 +45,16 @@ class RAGService:
         if not question:
             raise ValueError("Question tidak boleh kosong.")
 
-        documents = self.retriever.retrieve(question)
+        if self._looks_like_prompt_injection(question):
+            return {
+                "answer": OUT_OF_SCOPE_REPLY,
+                "sources": [],
+            }
+
+        documents = self.retriever.retrieve_with_threshold(question)
         if not documents:
             return {
-                "answer": "Maaf, tidak ada informasi yang relevan ditemukan.",
+                "answer": OUT_OF_SCOPE_REPLY,
                 "sources": [],
             }
 
@@ -47,6 +66,11 @@ class RAGService:
             "answer": answer,
             "sources": sources,
         }
+
+    @staticmethod
+    def _looks_like_prompt_injection(question: str) -> bool:
+        lowered = question.lower()
+        return any(re.search(pattern, lowered) for pattern in UNSAFE_PROMPT_PATTERNS)
 
     @staticmethod
     def _extract_sources(documents: List[Dict[str, Any]]) -> List[Dict[str, str]]:
