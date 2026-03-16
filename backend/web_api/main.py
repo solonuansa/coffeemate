@@ -22,7 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAX_QUESTION_LENGTH = 500
+MAX_QUESTION_LENGTH = 200
 
 rag_service: Optional[RAGService] = None
 startup_error: Optional[str] = None
@@ -44,6 +44,8 @@ class SourceItem(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     sources: List[SourceItem]
+    follow_up_suggestions: List[str] = Field(default_factory=list)
+    fallback_type: Optional[str] = None
 
 
 @asynccontextmanager

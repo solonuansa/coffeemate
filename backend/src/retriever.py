@@ -154,6 +154,39 @@ class Retriever:
             }
             for doc, score in filtered_results
         ]
+
+    def retrieve_with_threshold_diagnostics(
+        self,
+        query: str,
+        k: int = TOP_K_RESULTS,
+        threshold: float = SCORE_THRESHOLD,
+    ) -> tuple[list, list]:
+        """
+        Retrieve dokumen dengan threshold dan sertakan dokumen yang disisihkan.
+
+        Returns:
+            tuple(accepted_docs, rejected_docs)
+        """
+        fetch_k = k * 3
+        results_with_scores = self.vectorstore.similarity_search_with_score(
+            query,
+            k=fetch_k,
+        )
+
+        accepted = []
+        rejected = []
+        for doc, score in results_with_scores:
+            item = {
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "score": score,
+            }
+            if score < threshold and len(accepted) < k:
+                accepted.append(item)
+            else:
+                rejected.append(item)
+
+        return accepted, rejected
     
     def format_context(self, documents: list) -> str:
         """

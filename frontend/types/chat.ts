@@ -6,6 +6,8 @@ export type SourceItem = {
 export type ChatResponse = {
   answer: string;
   sources: SourceItem[];
+  follow_up_suggestions?: string[];
+  fallback_type?: "too_generic" | "out_of_scope" | null;
 };
 
 export type Message = {
@@ -13,4 +15,6 @@ export type Message = {
   role: "user" | "assistant";
   text: string;
   sources?: SourceItem[];
+  followUpSuggestions?: string[];
+  fallbackType?: "too_generic" | "out_of_scope" | null;
 };

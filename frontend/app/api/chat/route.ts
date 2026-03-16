@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const BACKEND_API_URL =
   process.env.BACKEND_API_URL ?? "http://127.0.0.1:8000/api/chat";
 const BACKEND_API_TOKEN = process.env.BACKEND_API_TOKEN ?? "";
-const MAX_QUESTION_LENGTH = 500;
+const MAX_QUESTION_LENGTH = 200;
 
 export async function POST(req: NextRequest) {
   try {
