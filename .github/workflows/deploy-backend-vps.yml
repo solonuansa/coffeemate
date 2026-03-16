@@ -69,15 +69,14 @@ jobs:
           sudo systemctl --no-pager --full status coffeemate
 
           echo "Waiting for backend readiness..."
-          sleep 3
-          for i in $(seq 1 60); do
-            echo "Health check attempt ${i}/60"
-            if curl -fsS "http://127.0.0.1:8000/health" > /dev/null; then
-              echo "Backend is healthy."
-              exit 0
-            fi
-            sleep 3
-          done
+          if curl --fail --silent --show-error \
+            --retry 60 \
+            --retry-delay 3 \
+            --retry-connrefused \
+            "http://127.0.0.1:8000/health" > /dev/null; then
+            echo "Backend is healthy."
+            exit 0
+          fi
 
           echo "Health check failed: /health is not ready"
           sudo journalctl -u coffeemate -n 50 --no-pager || true
