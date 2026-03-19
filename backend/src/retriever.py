@@ -203,8 +203,13 @@ class Retriever:
         
         context = "Informasi Relevan:\n\n"
         for i, doc in enumerate(documents, 1):
+            metadata = doc.get("metadata", {})
+            source = metadata.get("source", "Unknown")
+            lokasi = metadata.get("lokasi", "Unknown")
             context += f"--- Sumber {i} ---\n"
+            context += f"Nama Referensi: {source}\n"
+            context += f"Lokasi Referensi: {lokasi}\n"
             context += doc["content"]
-            context += f"\n(Sumber: {doc['metadata'].get('source', 'Unknown')})\n\n"
-        
+            context += f"\n(Sumber: {source})\n\n"
+
         return context

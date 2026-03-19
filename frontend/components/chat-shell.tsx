@@ -28,6 +28,18 @@ type MarkdownProps = {
   isUser: boolean;
 };
 
+function toInstagramUrl(sourceName: string): string | null {
+  const raw = sourceName.trim();
+  if (!raw) return null;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) {
+    return raw;
+  }
+
+  const cleaned = raw.replace(/^@+/, "").replace(/^\/+|\/+$/g, "");
+  if (!cleaned) return null;
+  return `https://www.instagram.com/${cleaned}/`;
+}
+
 function getRandomSuggestions(pool: string[], count: number): string[] {
   const shuffled = [...pool];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
@@ -79,9 +91,7 @@ export default function ChatShell() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [initialSuggestions] = useState<string[]>(() =>
-    getRandomSuggestions(SUGGESTION_POOL, INITIAL_SUGGESTIONS_COUNT),
-  );
+  const [initialSuggestions, setInitialSuggestions] = useState<string[]>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const shouldReduceMotion = useReducedMotion();
@@ -99,6 +109,12 @@ export default function ChatShell() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading, scrollToBottom]);
+
+  useEffect(() => {
+    setInitialSuggestions(
+      getRandomSuggestions(SUGGESTION_POOL, INITIAL_SUGGESTIONS_COUNT),
+    );
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -289,19 +305,23 @@ export default function ChatShell() {
                       {message.sources && message.sources.length > 0 && (
                         <div className="mt-1 flex flex-wrap gap-2">
                           {message.sources.map((source, index) => (
-                            <motion.div 
+                            <motion.a
                               key={`${message.id}-${source.nama}-${index}`}
                               initial={shouldReduceMotion ? false : { opacity: 0, x: -5 }}
                               animate={shouldReduceMotion ? undefined : { opacity: 1, x: 0 }}
                               transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.14 + (index * 0.06), ease: ENTER_EASE }}
-                              className={`group/card flex max-w-full cursor-default items-start gap-2 rounded-xl border bg-[color:var(--surface)] p-2.5 text-xs shadow-sm transition-all hover:bg-white ${
+                              href={toInstagramUrl(source.nama) ?? undefined}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={`group/card flex max-w-full items-start gap-2 rounded-xl border bg-[color:var(--surface)] p-2.5 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white ${
                                 index % 3 === 0
                                   ? "border-[color:color-mix(in_oklch,var(--accent-amber)_35%,white)]"
                                   : index % 3 === 1
                                     ? "border-[color:color-mix(in_oklch,var(--accent-leaf)_35%,white)]"
                                     : "border-[color:color-mix(in_oklch,var(--accent-berry)_30%,white)]"
                               }`}
-                              title={source.lokasi}
+                              title={`Buka Instagram ${source.nama}`}
+                              aria-label={`Buka Instagram ${source.nama}`}
                             >
                               <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-stone-100 text-stone-500">
                                 <span className="font-semibold">{index + 1}</span>
@@ -313,7 +333,7 @@ export default function ChatShell() {
                                   <span className="truncate">{source.lokasi}</span>
                                 </span>
                               </div>
-                            </motion.div>
+                            </motion.a>
                           ))}
                         </div>
                       )}

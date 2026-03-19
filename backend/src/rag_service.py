@@ -20,9 +20,9 @@ OUT_OF_SCOPE_REPLY = (
     "dan informasi terkait di wilayah Yogyakarta berdasarkan data yang tersedia."
 )
 NEED_MORE_DETAIL_REPLY = (
-    "Pertanyaanmu masih terlalu umum. Aku bisa bantu lebih tepat kalau kamu tambahkan "
-    "detail seperti area (mis. Sleman/Kota Jogja), kebutuhan (WFC/meeting/nongkrong), "
-    "atau preferensi suasana."
+    "Aku belum dapat konteks yang cukup spesifik dari pertanyaanmu. "
+    "Coba tambahkan area (mis. Sleman/Kota Jogja), kebutuhan (WFC/meeting/nongkrong), "
+    "atau preferensi suasana supaya rekomendasinya lebih pas."
 )
 COFFEE_DOMAIN_KEYWORDS = [
     "kopi",
@@ -88,8 +88,16 @@ class RAGService:
             question,
             threshold=adaptive_threshold,
         )
+
+        is_domain_query = self._is_coffee_domain_query(question)
+        if not documents and is_domain_query:
+            relaxed_threshold = self._relaxed_threshold(adaptive_threshold)
+            documents, _rejected_documents = self.retriever.retrieve_with_threshold_diagnostics(
+                question,
+                threshold=relaxed_threshold,
+            )
+
         if not documents:
-            is_domain_query = self._is_coffee_domain_query(question)
             return {
                 "answer": NEED_MORE_DETAIL_REPLY if is_domain_query else OUT_OF_SCOPE_REPLY,
                 "sources": [],
@@ -101,6 +109,7 @@ class RAGService:
 
         context = self.retriever.format_context(documents)
         answer = self.generator.generate(question, context)
+        answer = self._normalize_answer_markdown(answer)
         sources = self._extract_sources(documents)
 
         return {
@@ -124,12 +133,69 @@ class RAGService:
     def _adaptive_threshold(question: str) -> float:
         word_count = len(question.split())
         if word_count <= 3:
-            return min(0.55, SCORE_THRESHOLD + 0.25)
+            return min(0.65, SCORE_THRESHOLD + 0.35)
         if word_count <= 6:
-            return min(0.45, SCORE_THRESHOLD + 0.15)
+            return min(0.55, SCORE_THRESHOLD + 0.25)
         if word_count <= 10:
-            return min(0.35, SCORE_THRESHOLD + 0.05)
+            return min(0.45, SCORE_THRESHOLD + 0.15)
         return SCORE_THRESHOLD
+
+    @staticmethod
+    def _relaxed_threshold(current_threshold: float) -> float:
+        # Second-chance retrieval for short/underspecified but in-domain queries.
+        return min(0.85, current_threshold + 0.2)
+
+    @staticmethod
+    def _normalize_answer_markdown(answer: str) -> str:
+        text = answer.replace("\r\n", "\n").replace("\r", "\n")
+        lines = text.split("\n")
+        normalized: List[str] = []
+
+        bullet_started = False
+        for raw in lines:
+            line = raw.rstrip()
+            if not line.strip():
+                if normalized and normalized[-1] != "":
+                    normalized.append("")
+                continue
+
+            compact = re.sub(r"[ \t]+", " ", line.strip())
+
+            # Normalize unordered bullet markers to "- ".
+            if re.match(r"^(\*|•|-) +", compact):
+                item = re.sub(r"^(\*|•|-) +", "", compact).strip()
+                if normalized and normalized[-1] != "" and not bullet_started:
+                    normalized.append("")
+                normalized.append(f"- {item}")
+                bullet_started = True
+                continue
+
+            # Normalize ordered list to unordered for consistency with UI style.
+            ordered_match = re.match(r"^\d+[.)] +(.*)$", compact)
+            if ordered_match:
+                item = ordered_match.group(1).strip()
+                if normalized and normalized[-1] != "" and not bullet_started:
+                    normalized.append("")
+                normalized.append(f"- {item}")
+                bullet_started = True
+                continue
+
+            # Keep detail lines indented under previous bullet when appropriate.
+            if normalized and normalized[-1].startswith("- "):
+                if re.match(r"^(Lokasi|Alasan|Menu|Fasilitas|Catatan)\s*:", compact, re.IGNORECASE):
+                    normalized.append(f"  {compact}")
+                    continue
+
+            normalized.append(compact)
+            bullet_started = False
+
+        # Remove leading/trailing blank lines and duplicate blanks.
+        while normalized and normalized[0] == "":
+            normalized.pop(0)
+        while normalized and normalized[-1] == "":
+            normalized.pop()
+
+        return "\n".join(normalized)
 
     @staticmethod
     def _extract_sources(documents: List[Dict[str, Any]]) -> List[Dict[str, str]]:
